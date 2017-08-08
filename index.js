@@ -9,17 +9,34 @@ let DefaultMarkerImg = {
   'blue': 'http://webapi.amap.com/theme/v1.3/markers/n/mark_b.png'
 }
 
-let init = function (id, options, callback) {
+let init = function (id, options, callback, addCenterMarker) {
+  initCtx = null
+  initParams = null
+  delete window.__amap__init0__
   this.map = new AMap.Map(id, options)
   this.centerXY = [0, 0]
   this.map.on('complete', () => {
     document.querySelector('#'+id+' a').removeAttribute('href')
+    document.querySelector('#'+id+' .amap-copyright').remove()
     this.updateCenter()
+    if (addCenterMarker) {
+      
+    }
     callback && callback()
   })
 }
 
-let amap = function (id, options, callback, jsLoader, config) {
+let initCtx = null
+let initParams = null
+
+window.__amap__init0__ = function () {
+  if (!initCtx) {
+    return
+  }
+  init.apply(initCtx, initParams)
+}
+
+let amap = function (id, options, callback, jsLoader, config, addCenterMarker) {
   if (typeof jsLoader !== 'function' && typeof AMap === 'undefined') {
     throw new Error('There is no loader to load AMap')
   }
@@ -30,11 +47,13 @@ let amap = function (id, options, callback, jsLoader, config) {
     }
   }
   if (typeof AMap === 'undefined') {
-    jsLoader(config.url + '?v='+config.version + '&key=' +config.key, () => {
-      init.call(this, id, options, callback)
-    })
+    initCtx = this
+    initParams = [id, options, callback, addCenterMarker]
+    // Error: It isn't possible to write into a document from an asynchronously-loaded external script
+    // 由于chrome 阻止异步写入，改成异步加载高德地图的方案
+    jsLoader(config.url + '?v='+config.version + '&key=' +config.key+'&callback=__amap__init0__')
   } else {
-    init.call(this, id, options, callback)
+    init.call(this, id, options, callback, addCenterMarker)
   }
 }
 
