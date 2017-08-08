@@ -1,0 +1,24 @@
+{
+  "name": "spd-amap",
+  "version": "1.0.0",
+  "description": "高德地图js封装",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/supaide/spd-amap.git"
+  },
+  "keywords": [
+    "高德",
+    "amap",
+    "api"
+  ],
+  "author": "cyij",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/supaide/spd-amap/issues"
+  },
+  "homepage": "https://github.com/supaide/spd-amap#readme"
+}
