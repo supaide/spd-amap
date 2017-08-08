@@ -9,21 +9,35 @@ let DefaultMarkerImg = {
   'blue': 'http://webapi.amap.com/theme/v1.3/markers/n/mark_b.png'
 }
 
-let init = function (id, options, callback, addCenterMarker) {
+let init = function (id, options, callback, config) {
   initCtx = null
   initParams = null
   delete window.__amap__init0__
   this.map = new AMap.Map(id, options)
-  this.centerXY = [0, 0]
+  this.currentXY = [0, 0]
   this.map.on('complete', () => {
     document.querySelector('#'+id+' a').removeAttribute('href')
     document.querySelector('#'+id+' .amap-copyright').remove()
     this.updateCenter()
-    if (addCenterMarker) {
-      
-    }
     callback && callback()
   })
+  if (config && typeof config.onDrag === 'function') {
+    this.currentXY = [0, 0]
+    this.map.on('touchstart', (e) => {
+      this.currentXY[0] = e.pixel.getX()
+      this.currentXY[1] = e.pixel.getY()
+    })
+    this.map.on('touchend', (e) => {
+      let dx = e.pixel.getX() - this.currentXY[0]
+      let dy = e.pixel.getY() - this.currentXY[1]
+      let center = this.map.getCenter()
+      let pixel = this.map.lnglatToPixel(this.map.getCenter(), this.map.getZoom())
+      let x = pixel.getX() - dx, y = pixel.getY() - dy
+      let lnglat = this.map.pixelToLngLat(new AMap.Pixel(x, y), this.map.getZoom())
+      let poi = lnglat.getLng() + ',' + lnglat.getLat()
+      config.onDrag(poi)
+    })
+  }
 }
 
 let initCtx = null
@@ -36,7 +50,7 @@ window.__amap__init0__ = function () {
   init.apply(initCtx, initParams)
 }
 
-let amap = function (id, options, callback, jsLoader, config, addCenterMarker) {
+let amap = function (id, options, callback, jsLoader, config) {
   if (typeof jsLoader !== 'function' && typeof AMap === 'undefined') {
     throw new Error('There is no loader to load AMap')
   }
@@ -48,12 +62,12 @@ let amap = function (id, options, callback, jsLoader, config, addCenterMarker) {
   }
   if (typeof AMap === 'undefined') {
     initCtx = this
-    initParams = [id, options, callback, addCenterMarker]
+    initParams = [id, options, callback, config]
     // Error: It isn't possible to write into a document from an asynchronously-loaded external script
     // 由于chrome 阻止异步写入，改成异步加载高德地图的方案
     jsLoader(config.url + '?v='+config.version + '&key=' +config.key+'&callback=__amap__init0__')
   } else {
-    init.call(this, id, options, callback, addCenterMarker)
+    init.call(this, id, options, callback, config)
   }
 }
 
@@ -66,10 +80,6 @@ amap.prototype.getCenter = function () {
   return [center.getLng(), center.getLat()]
 }
 
-amap.prototype.getCenterXY = function () {
-  return this.centerXY
-}
-
 amap.prototype.updateCenter = function (poi, zoom, callback) {
   if (typeof poi === 'string') {
     poi = poi.split(',')
@@ -79,16 +89,6 @@ amap.prototype.updateCenter = function (poi, zoom, callback) {
   } else if (poi) {
     this.map.setCenter(poi)
   }
-  if (!poi) {
-    let lnglat = this.map.getCenter()
-    poi = [lnglat.getLng(), lnglat.getLat()]
-  }
-  if (!zoom) {
-    zoom = this.map.getZoom()
-  }
-  let pixel = this.map.lnglatToPixel(poi, zoom)
-  this.centerXY[0] = pixel.getX()
-  this.centerXY[1] = pixel.getY()
   callback && callback()
 }
 
@@ -118,17 +118,19 @@ amap.prototype.poiSearch = function (text, options, callback) {
 }
 
 amap.prototype.nearbySearch = function (poi, options, callback, radius) {
-  radius = radius || 200
+  radius = radius || 1000
   if (typeof poi === 'string') {
     poi = poi.split(',')
   }
-  let placeSearch = new AMap.PlaceSearch(options)
-  placeSearch.searchNearBy('', poi, radius, function (status, result) {
-    let ret = null
-    if (status === 'complete' && result.info === 'OK') {
-      ret = result.poiList
-    }
-    callback && callback(ret)
+  this.getService('PlaceSearch', function () {
+    let placeSearch = new AMap.PlaceSearch(options)
+    placeSearch.searchNearBy('', poi, radius, function (status, result) {
+      let ret = null
+      if (status === 'complete' && result.info === 'OK') {
+        ret = result.poiList
+      }
+      callback && callback(ret)
+    })
   })
 }
 
