@@ -86,8 +86,10 @@ amap.prototype.updateCenter = function (poi, zoom, callback) {
   }
   if (poi && zoom) {
     this.map.setZoomAndCenter(zoom, poi)
+    this.map.panTo(poi)
   } else if (poi) {
     this.map.setCenter(poi)
+    this.map.panTo(poi)
   }
   callback && callback()
 }
@@ -122,6 +124,7 @@ amap.prototype.nearbySearch = function (poi, options, callback, radius) {
   if (typeof poi === 'string') {
     poi = poi.split(',')
   }
+  options = options || {}
   this.getService('PlaceSearch', function () {
     let placeSearch = new AMap.PlaceSearch(options)
     placeSearch.searchNearBy('', poi, radius, function (status, result) {
@@ -147,11 +150,14 @@ amap.prototype.addMarker = function (poi, callback, options, icon) {
     if (!options.position) {
       options.position = (typeof poi === 'string') ? poi.split(',') : poi
     }
-    if (typeof options.type === 'undefined') {
-      options.type = '餐饮服务|商务住宅|生活服务'
-    }
     let marker = new AMap.Marker(options)
     marker.setMap(this.map)
+    /*
+    marker.setLabel({//label默认蓝框白底左上角显示，样式className为：amap-marker-label
+      offset: new AMap.Pixel(20, 20),//修改label相对于maker的位置
+      content: poi 
+    });
+    */
     callback && callback(marker)
   })
 }
@@ -183,6 +189,12 @@ amap.prototype.addToolBar = function (options) {
     this.toolBar = new AMap.ToolBar(options)
     this.map.addControl(this.toolBar)
   })
+}
+
+amap.prototype.destroy = function () {
+  this.map.clearMap()
+  this.map.destroy()
+  this.map = null
 }
 
 export default amap
