@@ -13,6 +13,9 @@ let init = function (id, options, callback, config) {
   initCtx = null
   initParams = null
   delete window.__amap__init0__
+  if (typeof options.center === 'string') {
+    options.center = options.center.split(',')
+  }
   this.map = new AMap.Map(id, options)
   this.currentXY = [0, 0]
   this.map.on('complete', () => {
